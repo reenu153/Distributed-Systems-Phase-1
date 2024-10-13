@@ -15,7 +15,6 @@ async def send_word_count_request():
         uri = "ws://load_balancer:8765"
         async with websockets.connect(uri) as websocket:
             request = f"{fileName},{keyword}"
-            print("request", request)
             await websocket.send(request)
             result = await websocket.recv()
             print(f"Word count result: {result}")
