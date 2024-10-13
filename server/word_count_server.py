@@ -31,7 +31,7 @@ class WordCountService(rpyc.Service):
         return count
 
 if __name__ == "__main__":
-    port = int(os.getenv('SERVER_PORT', 18812))  # Default to 18812 if not set
+    port = int(os.getenv('SERVER_PORT', 18812)) 
     server = ThreadedServer(WordCountService, port=port, hostname='0.0.0.0')
     print("Server started on port 18812")
     server.start()

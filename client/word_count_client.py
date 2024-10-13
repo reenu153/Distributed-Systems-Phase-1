@@ -15,9 +15,10 @@ async def send_word_count_request():
         uri = "ws://load_balancer:8765"
         async with websockets.connect(uri) as websocket:
             request = f"{fileName},{keyword}"
-            await websocket.send("message")
-        result = await websocket.recv()
-        print(f"Word count result: {result}")
+            print("request", request)
+            await websocket.send(request)
+            result = await websocket.recv()
+            print(f"Word count result: {result}")
     except Exception as e:
         print(f"An error occurred: {e}")
     return 0

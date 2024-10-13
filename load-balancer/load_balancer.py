@@ -10,7 +10,6 @@ RPYC_SERVERS = [
 ]
 
 async def handle_client(websocket, path):
-    print(websocket, path)
     try:
         request = await websocket.recv()
         print(f"Received request: {request}")
@@ -21,9 +20,10 @@ async def handle_client(websocket, path):
 
         conn = rpyc.connect(server_host, server_port)
 
-        word_count = conn.root.exposed_word_count(keyword, fileName)
-        word_count=0
+        word_count = conn.root.exposed_word_count(fileName, keyword)
+
         await websocket.send(str(word_count))
+
         print(f"Sent result: {word_count}")
 
     except Exception as e:
@@ -31,6 +31,7 @@ async def handle_client(websocket, path):
         await websocket.send(f"Error: {str(e)}")
 
 async def main():
+    print("here")
     async with websockets.serve(handle_client, "load_balancer", 8765):
         print("Load balancer web socket server started.")
         await asyncio.Future() 
