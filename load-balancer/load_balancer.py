@@ -2,12 +2,22 @@ import asyncio
 import websockets
 import rpyc
 import random
+import os
 
 RPYC_SERVERS = [
-    ("wordcount_server_1", 18812),
-    ("wordcount_server_2", 18813),
-    ("wordcount_server_3", 18814)
+    {"host": "wordcount_server_1", "port": 18812, "connections": 0},
+    {"host": "wordcount_server_2", "port": 18813, "connections": 0},
+    {"host": "wordcount_server_3", "port": 18814, "connections": 0}
 ]
+
+def select_server_round_robin():
+    server_index = 0
+    server = RPYC_SERVERS[server_index]
+    server_index = (server_index + 1) % len(RPYC_SERVERS)
+    return server
+
+def select_server_least_connections():
+    return min(RPYC_SERVERS, key=lambda s: s["connections"])
 
 async def handle_client(websocket, path):
     try:
@@ -16,11 +26,23 @@ async def handle_client(websocket, path):
 
         fileName, keyword = request.split(",")
 
-        server_host, server_port = random.choice(RPYC_SERVERS)
+        load_balancing_algo = os.getenv('LOAD_BALANCING_ALGORITHM',"ROUND_ROBIN")
+        if load_balancing_algo == "ROUND_ROBIN":
+            server = select_server_round_robin()
+        elif load_balancing_algo == "LEAST_CONNECTIONS":
+            server = select_server_least_connections()
 
-        conn = rpyc.connect(server_host, server_port)
+        print(f"Connection opened to " + server["host"] + " listening on port " + str(server["port"]))
+
+        conn = rpyc.connect(server["host"], server["port"])
+
+        server["connections"] += 1
 
         word_count = conn.root.exposed_word_count(fileName, keyword)
+
+        server["connections"] -= 1
+
+        print(f"Connection to "+server["host"]+" on "+str(server["port"])+" closed")
 
         await websocket.send(str(word_count))
 
@@ -31,9 +53,8 @@ async def handle_client(websocket, path):
         await websocket.send(f"Error: {str(e)}")
 
 async def main():
-    print("here")
     async with websockets.serve(handle_client, "load_balancer", 8765):
-        print("Load balancer web socket server started.")
+        print(f"Load balancer web socket server started.")
         await asyncio.Future() 
 
 if __name__ == "__main__":
