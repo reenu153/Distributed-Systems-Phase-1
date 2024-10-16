@@ -1,0 +1,46 @@
+In your setup, it appears that multiple servers (e.g., server1, server2, server3) are part of a load-balanced environment, where requests can be routed to any server by the load balancer. Since you are measuring cache hit latency, the expectation is that the second request (which is identical to the first one) would hit the cache. However, if each server maintains its own separate cache, the second request will go to a different server and may not benefit from the cached result on the first server.
+
+To address this, Redis is used as the caching mechanism. If Redis is set up correctly and all servers share the same Redis instance, the cache is centralized, and all servers will access the same cache regardless of which server handles the request.
+
+Here's how the cache is shared across servers:
+Centralized Redis Cache: In your word_count_server.py code, each server instance connects to the same Redis server. This is done through the redis.Redis connection:
+python
+Copy code
+redis_client = redis.Redis(host='redis', port=6379, db=0)
+All servers (server1, server2, server3) use this same Redis instance (host='redis') for caching.
+Since Redis is an external service (likely running in a container named redis), all servers connect to the same Redis instance, which means they share the same cache.
+Cache Consistency:
+When server1 processes a request and caches the result in Redis, that cached result becomes available to server2 and server3 as well.
+When server2 receives the same request, it checks the Redis cache, finds the cached result from server1, and returns it immediately without recalculating the word count. This gives you the cache hit latency.
+How Redis Works in Your Setup:
+Redis Host: In your code, you have host='redis', which means the Redis service is running in a Docker container (or service) named redis. All servers point to this same Redis instance.
+Cache Access: All servers (server1, server2, etc.) access this central Redis cache by querying Redis for cached results using the cache_key, such as "{fileName}:{keyword}". If the key exists in Redis, the cached result is used, regardless of which server initially cached the result.
+What Happens During a Request:
+First Request:
+The request is routed to server1, and server1 checks Redis for the cached result. Since it's the first time this request is made, Redis doesn't have the result (cache miss).
+server1 processes the request, computes the word count, and stores the result in Redis under the appropriate key.
+Second Request (Cache Hit):
+The same request is routed to server2. server2 checks Redis for the cached result.
+Since the result was already cached by server1, server2 retrieves the cached result from Redis (cache hit) and returns it immediately, resulting in a low latency.
+Example Workflow:
+server1 receives the first request:
+Checks Redis: Cache miss.
+Computes the result and stores it in Redis.
+Returns the result.
+server2 receives the second request (same keyword/filename pair):
+Checks Redis: Cache hit.
+Retrieves the cached result and returns it without recomputation.
+Important Considerations:
+All Servers Use the Same Redis: For this to work, all your servers must be correctly configured to use the same Redis instance (as you have set up in your Docker environment).
+No Local Caching: There’s no local in-memory caching on the individual servers. All cache operations are performed using Redis, ensuring consistency across servers.
+How to Ensure Redis is Shared:
+Check Redis Configuration: Ensure that all your servers (server1, server2, etc.) are connecting to the same Redis instance. You can check this by verifying that each server is pointing to the correct Redis container or Redis instance in your Docker Compose setup or orchestration tool.
+Inspect Redis Keys: If you want to verify that the keys are being stored in Redis, you can connect to the Redis instance using redis-cli and list the keys:
+bash
+Copy code
+docker exec -it redis_container_name redis-cli
+KEYS *
+This will show you the keys being stored, including the keyword-filename pairs that were cached.
+
+Conclusion:
+Yes, the cache is commonly maintained and accessed by all server instances through a centralized Redis instance. All servers interact with Redis for both storing and retrieving cached results, ensuring that any server can serve cached results regardless of which server handled the initial request.
