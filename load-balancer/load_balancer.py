@@ -10,8 +10,10 @@ RPYC_SERVERS = [
     {"host": "wordcount_server_3", "port": 18814, "connections": 0}
 ]
 
+server_index = 0
+
 def select_server_round_robin():
-    server_index = 0
+    global server_index = 0
     server = RPYC_SERVERS[server_index]
     server_index = (server_index + 1) % len(RPYC_SERVERS)
     return server
