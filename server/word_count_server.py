@@ -24,15 +24,21 @@ class WordCountService(rpyc.Service):
             return f"Text file {fileName} not found"
 
         pattern = r'\b' + re.escape(keyword) + r'\b'
-        count = len(re.findall(pattern, text,re.IGNORECASE))
+        count = len(re.findall(pattern, text, re.IGNORECASE))
         
         redis_client.set(cache_key, count)
         
         return count
 
+    def exposed_clear_cache(self):
+        redis_client.flushdb()
+        print("Cache cleared")
+
+    def exposed_health_check(self):
+        return "healthy"
+
 if __name__ == "__main__":
     port = int(os.getenv('SERVER_PORT', 18812)) 
     server = ThreadedServer(WordCountService, port=port, hostname='0.0.0.0')
-    print(f"Server started on port 18812")
+    print(f"Server started on port {port}")
     server.start()
-
