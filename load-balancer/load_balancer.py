@@ -13,7 +13,7 @@ RPYC_SERVERS = [
 server_index = 0
 
 def select_server_round_robin():
-    global server_index = 0
+    global server_index 
     server = RPYC_SERVERS[server_index]
     server_index = (server_index + 1) % len(RPYC_SERVERS)
     return server
