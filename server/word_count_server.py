@@ -2,15 +2,16 @@ import os
 import rpyc
 import redis
 import re
+import time
 from rpyc.utils.server import ThreadedServer
 
 redis_client = redis.Redis(host='redis', port=6379, db=0)
 
 class WordCountService(rpyc.Service):
     def exposed_word_count(self, fileName, keyword):
+        
         cache_key = f"{fileName}:{keyword}"
         cached_result = redis_client.get(cache_key)
-        
         if cached_result:
             print(f"Cache hit for {cache_key}")
             return int(cached_result)
@@ -33,9 +34,6 @@ class WordCountService(rpyc.Service):
     def exposed_clear_cache(self):
         redis_client.flushdb()
         print("Cache cleared")
-
-    def exposed_health_check(self):
-        return "healthy"
 
 if __name__ == "__main__":
     port = int(os.getenv('SERVER_PORT', 18812)) 

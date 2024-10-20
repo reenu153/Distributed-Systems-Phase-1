@@ -39,7 +39,8 @@ services:
   load_balancer:
     build: ./load-balancer
     environment:
-      - LOAD_BALANCING_ALGORITHM=ROUND_ROBIN
+      #- LOAD_BALANCING_ALGORITHM=ROUND_ROBIN
+      - LOAD_BALANCING_ALGORITHM=RANDOM
     depends_on:
       - wordcount_server_1
       - wordcount_server_2
@@ -49,6 +50,6 @@ services:
 
   client:
     build: ./client
-    command: ["sleep", "infinity"]  # Prevents auto-start by making the container idle
+    command: ["sleep", "infinity"]
     depends_on:
       - load_balancer
