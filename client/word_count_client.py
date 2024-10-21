@@ -32,11 +32,9 @@ async def handle_batch_requests(pairs):
         cache_results.append(f"Cache hit handled for {keyword_filename} by {server_info_cache}: Cache Latency = {float(cache_latency):.4f} ms, Word Count = {cache_word_count}")
         latencies.append((keyword_filename, float(cache_latency), "Cache"))
 
-    # Print normal results first
     for result in normal_results:
         print(result)
     
-    # Print cache results
     for result in cache_results:
         print(result)
 
