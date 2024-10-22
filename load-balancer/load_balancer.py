@@ -25,10 +25,11 @@ def select_server_random():
 def process_request(fileName, keyword):
     load_balancing_algo = os.getenv('LOAD_BALANCING_ALGORITHM', "ROUND_ROBIN")
 
-    if load_balancing_algo == "ROUND_ROBIN":
-        server = select_server_round_robin()
-    elif load_balancing_algo == "RANDOM":
+    if load_balancing_algo == "RANDOM":
         server = select_server_random()
+        
+    else:
+        server = select_server_round_robin()
 
     conn = rpyc.connect(server["host"], server["port"])
     server["connections"] += 1
