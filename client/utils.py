@@ -11,11 +11,18 @@ async def clear_cache():
         print(response)
 
 def plot_metrics(latencies):
-    x_labels = [pair[0] for pair in latencies]
-    normal_latencies = [pair[1] for pair in latencies if pair[2] == "Normal"]
-    cache_latencies = [pair[1] for pair in latencies if pair[2] == "Cache"]
+    latency_dict = {}
+    
+    for pair, latency, label in latencies:
+        if pair not in latency_dict:
+            latency_dict[pair] = {"Normal": None, "Cache": None}
+        latency_dict[pair][label] = latency
+    
+    x_labels = list(latency_dict.keys())
+    normal_latencies = [latency_dict[pair]["Normal"] for pair in x_labels]
+    cache_latencies = [latency_dict[pair]["Cache"] for pair in x_labels]
 
-    x = np.arange(len(x_labels) // 2)
+    x = np.arange(len(x_labels))
     width = 0.35
 
     fig, ax = plt.subplots(figsize=(10, 6))
@@ -26,7 +33,7 @@ def plot_metrics(latencies):
     ax.set_ylabel("Latency (milliseconds)")
     ax.set_title("Normal Latency vs Cache Latency (ms) for Keyword-Filename Pairs")
     ax.set_xticks(x)
-    ax.set_xticklabels(x_labels[::2], rotation=45)
+    ax.set_xticklabels(x_labels, rotation=45)
     ax.legend()
 
     for bar in bars1:
