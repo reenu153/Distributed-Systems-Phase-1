@@ -17,7 +17,6 @@ async def handle_requests(pairs):
 
     for filename, keyword in pairs:
         await asyncio.sleep(1)  # 1-second delay before processing each request
-        
         normal_data = await send_request(filename, keyword)
         
         try:
@@ -32,6 +31,8 @@ async def handle_requests(pairs):
         counts.append((keyword_filename, int(word_count)))
         latencies.append((keyword_filename, float(latency), "Normal"))
 
+    for filename, keyword in pairs:
+        await asyncio.sleep(1)  # 1-second delay before processing each request
         cache_data = await send_request(filename, keyword)
 
         try:
@@ -40,9 +41,10 @@ async def handle_requests(pairs):
             print(f"Unexpected cache response format: {cache_data}")
             continue
         
+        keyword_filename = f"{keyword}-{filename}"
         cache_result = f"Cache hit handled for {keyword_filename} by {server_info_cache}: Cache Latency = {float(cache_latency):.4f} ms, Word Count = {cache_word_count}"
         print(cache_result)
-        latencies.append((keyword_filename, float(cache_latency), "Cache"))
+        latencies.append((keyword_filename, float(cache_latency), "Cache")) 
 
     plot_metrics(latencies)
     plot_count(counts)
