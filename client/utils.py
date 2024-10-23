@@ -24,11 +24,9 @@ def plot_metrics(latencies):
 
     x = np.arange(len(xLabel))
     width = 0.35
-
     fig, axis = plt.subplots(figsize=(10, 6))
-    bars1 = axis.bar(x - width / 2, normal_latencies, width, label='Normal Latency')
-    bars2 = axis.bar(x + width / 2, cache_latencies, width, label='Cache Latency')
-
+    barNormal = axis.bar(x - width / 2, normal_latencies, width, label='Normal Latency')
+    barCache = axis.bar(x + width / 2, cache_latencies, width, label='Cache Latency')
     axis.set_xlabel("Keyword-Filename Pair")
     axis.set_ylabel("Latency (milliseconds)")
     axis.set_title("Normal Latency vs Cache Latency (ms) for Keyword-Filename Pairs")
@@ -36,11 +34,11 @@ def plot_metrics(latencies):
     axis.set_xticklabels(xLabel, rotation=45)
     axis.legend()
 
-    for bar in bars1:
+    for bar in barNormal:
         height = bar.get_height()
         axis.annotate(f'{height:.2f}', xy=(bar.get_x() + bar.get_width() / 2, height), xytext=(0, 3), textcoords="offset points", ha='center', va='bottom')
 
-    for bar in bars2:
+    for bar in barCache:
         height = bar.get_height()
         axis.annotate(f'{height:.2f}', xy=(bar.get_x() + bar.get_width() / 2, height), xytext=(0, 3), textcoords="offset points", ha='center', va='bottom')
 
@@ -51,13 +49,9 @@ def plot_metrics(latencies):
 def plot_count(counts):
     xLabel = [pair[0] for pair in counts]
     count_values = [pair[1] for pair in counts]
-
     x = np.arange(len(xLabel))
-
     fig, axis = plt.subplots(figsize=(10, 6))
-
     bars = axis.bar(x, count_values, width=0.5, color='green')
-
     axis.set_xlabel("Keyword-Filename Pair")
     axis.set_ylabel("Word Count")
     axis.set_title("Word Count for Each Keyword-Filename Pair")

@@ -3,7 +3,7 @@ import asyncio
 import websockets
 from utils import plot_metrics, plot_count, clear_cache
 
-async def reqSend(filename, keyword):
+async def request_send(filename, keyword):
     uri = "ws://load_balancer:8765"
     async with websockets.connect(uri) as websocket:
         request = f"{filename},{keyword}"
@@ -11,13 +11,13 @@ async def reqSend(filename, keyword):
         response = await websocket.recv()
         return response
 
-async def reqManage(pairs):
+async def request_manage(pairs):
     latencies = []
     counts = []
 
     for filename, keyword in pairs:
         await asyncio.sleep(1)
-        normal_data = await reqSend(filename, keyword)
+        normal_data = await request_send(filename, keyword)
         
         try:
             word_count, server_info, latency = normal_data.split(",")
@@ -33,7 +33,7 @@ async def reqManage(pairs):
 
     for filename, keyword in pairs:
         await asyncio.sleep(1)
-        cache_data = await reqSend(filename, keyword)
+        cache_data = await request_send(filename, keyword)
 
         try:
             cache_word_count, server_info_cache, cache_latency = cache_data.split(",")
@@ -74,4 +74,4 @@ if __name__ == "__main__":
                 exit(1)
 
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(reqManage(keyword_filename_pairs))
+    loop.run_until_complete(request_manage(keyword_filename_pairs))

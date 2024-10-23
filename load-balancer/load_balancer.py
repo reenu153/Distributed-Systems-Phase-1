@@ -22,7 +22,7 @@ def select_server_round_robin():
 def select_server_random():
     return RPYC_SERVERS[random.randint(0, len(RPYC_SERVERS) - 1)]
 
-async def reqProcess(filename, keyword):
+async def request_process(filename, keyword):
     load_balancing_algo = os.getenv('LOAD_BALANCING_ALGORITHM', "ROUND_ROBIN")
     
     if load_balancing_algo == "RANDOM":
@@ -43,23 +43,23 @@ async def reqProcess(filename, keyword):
 
     return f"{word_count},{server['host']}:{server['port']},{latency}"
 
-async def clientManage(websocket, path):
+async def client_manage(websocket, path):
     try:
         request = await websocket.recv()
         if request == "clear_cache":
-            await allCacheClear()
+            await all_cache_clear()
             await websocket.send("Cache cleared on all servers")
             return
 
         filename, keyword = request.split(",")
-        result = await reqProcess(filename, keyword)
+        result = await request_process(filename, keyword)
 
         await websocket.send(result)
 
     except Exception as e:
         await websocket.send(f"Error occurred: {str(e)}")
 
-async def allCacheClear():
+async def all_cache_clear():
     tasks = [asyncio.to_thread(rpyc.connect, server["host"], server["port"]) for server in RPYC_SERVERS]
  
     connections = await asyncio.gather(*tasks)
@@ -69,7 +69,7 @@ async def allCacheClear():
         conn.close()
 
 async def main():
-    async with websockets.serve(clientManage, "load_balancer", 8765):
+    async with websockets.serve(client_manage, "load_balancer", 8765):
         await asyncio.Future()
 
 if __name__ == "__main__":
