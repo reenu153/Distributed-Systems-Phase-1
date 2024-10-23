@@ -3,7 +3,7 @@ import asyncio
 import websockets
 from utils import plot_metrics, plot_count, clear_cache
 
-async def send_request(filename, keyword):
+async def reqSend(filename, keyword):
     uri = "ws://load_balancer:8765"
     async with websockets.connect(uri) as websocket:
         request = f"{filename},{keyword}"
@@ -11,13 +11,13 @@ async def send_request(filename, keyword):
         response = await websocket.recv()
         return response
 
-async def handle_requests(pairs):
+async def reqManage(pairs):
     latencies = []
     counts = []
 
     for filename, keyword in pairs:
-        await asyncio.sleep(1)  # 1-second delay before processing each request
-        normal_data = await send_request(filename, keyword)
+        await asyncio.sleep(1)
+        normal_data = await reqSend(filename, keyword)
         
         try:
             word_count, server_info, latency = normal_data.split(",")
@@ -32,11 +32,12 @@ async def handle_requests(pairs):
         latencies.append((keyword_filename, float(latency), "Normal"))
 
     for filename, keyword in pairs:
-        await asyncio.sleep(1)  # 1-second delay before processing each request
-        cache_data = await send_request(filename, keyword)
+        await asyncio.sleep(1)
+        cache_data = await reqSend(filename, keyword)
 
         try:
             cache_word_count, server_info_cache, cache_latency = cache_data.split(",")
+
         except ValueError:
             print(f"Unexpected cache response format: {cache_data}")
             continue
@@ -44,7 +45,7 @@ async def handle_requests(pairs):
         keyword_filename = f"{keyword}-{filename}"
         cache_result = f"Cache hit handled for {keyword_filename} by {server_info_cache}: Cache Latency = {float(cache_latency):.4f} ms, Word Count = {cache_word_count}"
         print(cache_result)
-        latencies.append((keyword_filename, float(cache_latency), "Cache")) 
+        latencies.append((keyword_filename, float(cache_latency), "Cache"))
 
     plot_metrics(latencies)
     plot_count(counts)
@@ -67,9 +68,10 @@ if __name__ == "__main__":
             try:
                 keyword, filename = pair.split(":")
                 keyword_filename_pairs.append((filename, keyword))
+
             except ValueError:
                 print(f"Invalid format for pair: {pair}. Expected 'keyword:filename'")
                 exit(1)
 
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(handle_requests(keyword_filename_pairs))
+    loop.run_until_complete(reqManage(keyword_filename_pairs))
