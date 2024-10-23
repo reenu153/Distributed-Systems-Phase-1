@@ -2,7 +2,7 @@ import os
 import rpyc
 import redis
 import re
-import time
+
 from rpyc.utils.server import ThreadedServer
 
 redis_client = redis.Redis(host='redis', port=6379, db=0)

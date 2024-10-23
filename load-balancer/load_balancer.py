@@ -6,9 +6,9 @@ import time
 import random
 
 RPYC_SERVERS = [
-    {"host": "wordcount_server_1", "port": 18812, "connections": 0},
-    {"host": "wordcount_server_2", "port": 18813, "connections": 0},
-    {"host": "wordcount_server_3", "port": 18814, "connections": 0}
+    {"host": "wordcount_server_1", "port": 18812},
+    {"host": "wordcount_server_2", "port": 18813},
+    {"host": "wordcount_server_3", "port": 18814}
 ]
 
 server_index = 0
@@ -20,47 +20,56 @@ def select_server_round_robin():
     return server
 
 def select_server_random():
-    return RPYC_SERVERS[random.randint(0,len(RPYC_SERVERS)-1)]
+    return RPYC_SERVERS[random.randint(0, len(RPYC_SERVERS) - 1)]
 
-def process_request(fileName, keyword):
+async def reqProcess(filename, keyword):
     load_balancing_algo = os.getenv('LOAD_BALANCING_ALGORITHM', "ROUND_ROBIN")
-
+    
     if load_balancing_algo == "RANDOM":
         server = select_server_random()
-        
     else:
         server = select_server_round_robin()
 
-    conn = rpyc.connect(server["host"], server["port"])
-    server["connections"] += 1
+    print(f"Connection opened to " + server["host"] + " listening on port " + str(server["port"]))
 
+    conn = await asyncio.to_thread(rpyc.connect, server["host"], server["port"])
+    
     start_time = time.time()
-    word_count = conn.root.exposed_word_count(fileName, keyword)
+    word_count = await asyncio.to_thread(conn.root.exposed_word_count, filename, keyword)
     latency = (time.time() - start_time) * 1000
 
-    server["connections"] -= 1
     conn.close()
+    print(f"Connection to "+server["host"]+" on "+str(server["port"])+" closed")
 
     return f"{word_count},{server['host']}:{server['port']},{latency}"
 
-async def handle_client(websocket, path):
-    request = await websocket.recv()
+async def clientManage(websocket, path):
+    try:
+        request = await websocket.recv()
+        if request == "clear_cache":
+            await allCacheClear()
+            await websocket.send("Cache cleared on all servers")
+            return
 
-    if request == "clear_cache":
-        for server in RPYC_SERVERS:
-            conn = rpyc.connect(server["host"], server["port"])
-            conn.root.clear_cache()
-            conn.close()
-        await websocket.send("Cache cleared on all servers")
-        return
+        filename, keyword = request.split(",")
+        result = await reqProcess(filename, keyword)
 
-    pairs = request.split(";")
-    results = [process_request(*pair.split(",")) for pair in pairs]
+        await websocket.send(result)
 
-    await websocket.send(";".join(results))
+    except Exception as e:
+        await websocket.send(f"Error occurred: {str(e)}")
+
+async def allCacheClear():
+    tasks = [asyncio.to_thread(rpyc.connect, server["host"], server["port"]) for server in RPYC_SERVERS]
+ 
+    connections = await asyncio.gather(*tasks)
+    
+    for conn in connections:
+        await asyncio.to_thread(conn.root.exposed_clear_cache)
+        conn.close()
 
 async def main():
-    async with websockets.serve(handle_client, "load_balancer", 8765):
+    async with websockets.serve(clientManage, "load_balancer", 8765):
         await asyncio.Future()
 
 if __name__ == "__main__":

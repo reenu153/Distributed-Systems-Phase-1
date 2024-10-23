@@ -11,67 +11,62 @@ async def clear_cache():
         print(response)
 
 def plot_metrics(latencies):
-    x_labels = [pair[0] for pair in latencies]
-    normal_latencies = [pair[1] for pair in latencies if pair[2] == "Normal"]
-    cache_latencies = [pair[1] for pair in latencies if pair[2] == "Cache"]
+    latency_dict = {}
+    
+    for pair, latency, label in latencies:
+        if pair not in latency_dict:
+            latency_dict[pair] = {"Normal": None, "Cache": None}
+        latency_dict[pair][label] = latency
+    
+    xLabel = list(latency_dict.keys())
+    normal_latencies = [latency_dict[pair]["Normal"] for pair in xLabel]
+    cache_latencies = [latency_dict[pair]["Cache"] for pair in xLabel]
 
-    x = np.arange(len(x_labels) // 2)
+    x = np.arange(len(xLabel))
     width = 0.35
 
-    fig, ax = plt.subplots(figsize=(10, 6))
-    bars1 = ax.bar(x - width / 2, normal_latencies, width, label='Normal Latency')
-    bars2 = ax.bar(x + width / 2, cache_latencies, width, label='Cache Latency')
+    fig, axis = plt.subplots(figsize=(10, 6))
+    bars1 = axis.bar(x - width / 2, normal_latencies, width, label='Normal Latency')
+    bars2 = axis.bar(x + width / 2, cache_latencies, width, label='Cache Latency')
 
-    ax.set_xlabel("Keyword-Filename Pair")
-    ax.set_ylabel("Latency (milliseconds)")
-    ax.set_title("Normal Latency vs Cache Latency (ms) for Keyword-Filename Pairs")
-    ax.set_xticks(x)
-    ax.set_xticklabels(x_labels[::2], rotation=45)
-    ax.legend()
+    axis.set_xlabel("Keyword-Filename Pair")
+    axis.set_ylabel("Latency (milliseconds)")
+    axis.set_title("Normal Latency vs Cache Latency (ms) for Keyword-Filename Pairs")
+    axis.set_xticks(x)
+    axis.set_xticklabels(xLabel, rotation=45)
+    axis.legend()
 
     for bar in bars1:
         height = bar.get_height()
-        ax.annotate(f'{height:.2f}',
-                    xy=(bar.get_x() + bar.get_width() / 2, height),
-                    xytext=(0, 3),
-                    textcoords="offset points",
-                    ha='center', va='bottom')
+        axis.annotate(f'{height:.2f}', xy=(bar.get_x() + bar.get_width() / 2, height), xytext=(0, 3), textcoords="offset points", ha='center', va='bottom')
 
     for bar in bars2:
         height = bar.get_height()
-        ax.annotate(f'{height:.2f}',
-                    xy=(bar.get_x() + bar.get_width() / 2, height),
-                    xytext=(0, 3),
-                    textcoords="offset points",
-                    ha='center', va='bottom')
+        axis.annotate(f'{height:.2f}', xy=(bar.get_x() + bar.get_width() / 2, height), xytext=(0, 3), textcoords="offset points", ha='center', va='bottom')
 
     plt.tight_layout()
     plt.savefig("/output/latency_plot.png")
     print("Plot saved as /output/latency_plot.png")
 
 def plot_count(counts):
-    x_labels = [pair[0] for pair in counts]
+    xLabel = [pair[0] for pair in counts]
     count_values = [pair[1] for pair in counts]
 
-    x = np.arange(len(x_labels))
+    x = np.arange(len(xLabel))
 
-    fig, ax = plt.subplots(figsize=(10, 6))
+    fig, axis = plt.subplots(figsize=(10, 6))
 
-    bars = ax.bar(x, count_values, width=0.5, color='green')
+    bars = axis.bar(x, count_values, width=0.5, color='green')
 
-    ax.set_xlabel("Keyword-Filename Pair")
-    ax.set_ylabel("Word Count")
-    ax.set_title("Word Count for Each Keyword-Filename Pair")
-    ax.set_xticks(x)
-    ax.set_xticklabels(x_labels, rotation=45)
+    axis.set_xlabel("Keyword-Filename Pair")
+    axis.set_ylabel("Word Count")
+    axis.set_title("Word Count for Each Keyword-Filename Pair")
+    axis.set_xticks(x)
+    axis.set_xticklabels(xLabel, rotation=45)
 
     for bar in bars:
         height = bar.get_height()
-        ax.annotate(f'{height}',
-                    xy=(bar.get_x() + bar.get_width() / 2, height),
-                    xytext=(0, 3),
-                    textcoords="offset points",
-                    ha='center', va='bottom')
+        axis.annotate(f'{height}', xy=(bar.get_x() + bar.get_width() / 2, height), xytext=(0, 3), textcoords="offset points", ha='center', va='bottom')
 
     plt.tight_layout()
     plt.savefig("/output/count.png")

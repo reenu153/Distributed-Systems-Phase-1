@@ -3,40 +3,49 @@ import asyncio
 import websockets
 from utils import plot_metrics, plot_count, clear_cache
 
-async def send_batch_request(pairs):
+async def reqSend(filename, keyword):
     uri = "ws://load_balancer:8765"
     async with websockets.connect(uri) as websocket:
-        batch_request = ";".join([f"{fileName},{keyword}" for fileName, keyword in pairs])
-        await websocket.send(batch_request)
+        request = f"{filename},{keyword}"
+        await websocket.send(request)
         response = await websocket.recv()
-        return response.split(";")
+        return response
 
-async def handle_batch_requests(pairs):
-    normal_data = await send_batch_request(pairs)
-    cache_data = await send_batch_request(pairs)
-
+async def reqManage(pairs):
     latencies = []
     counts = []
 
-    normal_results = []
-    cache_results = []
-
-    for idx, (normal, cache) in enumerate(zip(normal_data, cache_data)):
-        word_count, server_info, latency = normal.split(",")
-        keyword_filename = f"{pairs[idx][1]}-{pairs[idx][0]}"
-        normal_results.append(f"Request handled for {keyword_filename} by {server_info}: Latency = {float(latency):.4f} ms, Word Count = {word_count}")
+    for filename, keyword in pairs:
+        await asyncio.sleep(1)
+        normal_data = await reqSend(filename, keyword)
+        
+        try:
+            word_count, server_info, latency = normal_data.split(",")
+        except ValueError:
+            print(f"Unexpected response format: {normal_data}")
+            continue
+        
+        keyword_filename = f"{keyword}-{filename}"
+        normal_result = f"Request handled for {keyword_filename} by {server_info}: Latency = {float(latency):.4f} ms, Word Count = {word_count}"
+        print(normal_result)
         counts.append((keyword_filename, int(word_count)))
         latencies.append((keyword_filename, float(latency), "Normal"))
 
-        cache_word_count, server_info_cache, cache_latency = cache.split(",")
-        cache_results.append(f"Cache hit handled for {keyword_filename} by {server_info_cache}: Cache Latency = {float(cache_latency):.4f} ms, Word Count = {cache_word_count}")
-        latencies.append((keyword_filename, float(cache_latency), "Cache"))
+    for filename, keyword in pairs:
+        await asyncio.sleep(1)
+        cache_data = await reqSend(filename, keyword)
 
-    for result in normal_results:
-        print(result)
-    
-    for result in cache_results:
-        print(result)
+        try:
+            cache_word_count, server_info_cache, cache_latency = cache_data.split(",")
+
+        except ValueError:
+            print(f"Unexpected cache response format: {cache_data}")
+            continue
+        
+        keyword_filename = f"{keyword}-{filename}"
+        cache_result = f"Cache hit handled for {keyword_filename} by {server_info_cache}: Cache Latency = {float(cache_latency):.4f} ms, Word Count = {cache_word_count}"
+        print(cache_result)
+        latencies.append((keyword_filename, float(cache_latency), "Cache"))
 
     plot_metrics(latencies)
     plot_count(counts)
@@ -59,9 +68,10 @@ if __name__ == "__main__":
             try:
                 keyword, filename = pair.split(":")
                 keyword_filename_pairs.append((filename, keyword))
+
             except ValueError:
                 print(f"Invalid format for pair: {pair}. Expected 'keyword:filename'")
                 exit(1)
 
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(handle_batch_requests(keyword_filename_pairs))
+    loop.run_until_complete(reqManage(keyword_filename_pairs))
